@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pprint import pprint
 import requests
 import feedparser
@@ -6,15 +7,15 @@ today = requests.get('http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Prod
 tommorow = requests.get('http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Product=2&Region=26&Day=tomorrow')
 
 feedtoday = feedparser.parse(today.content)
-feedtommorow = feedparser.parse(tommorow.content)
-
-
-##pprint(feed, indent=4)
-
-##pprint(type(feed))
-
 todaylist = feedtoday['entries']
+for i in todaylist :
+    i['day'] = ''
+    
+feedtommorow = feedparser.parse(tommorow.content)
 tommorowlist = feedtommorow['entries']
+for i in tommorowlist :
+    i['day'] = 'style="background-color:#ff0000;"'
+
 feedAll = todaylist + tommorowlist
 
 def by_price(item):
@@ -23,33 +24,36 @@ def by_price(item):
 sorted_feedAll=sorted(feedAll, key=by_price)
 
 for i in range(len(sorted_feedAll)):
-    print('<tr>')
-    print('')
+
     print('Suburb: '+ sorted_feedAll[i]['location'] + '  Price:'+sorted_feedAll[i]['price'] + '  Brand:'+sorted_feedAll[i]['brand'])
 
 
 
 f = open('table.html', 'w')
-f.write("""
+rows = ''
+for i in sorted_feedAll:
+    
+    rows += """
+    
+    <tr {day}>\n
+        <td>{loc}</td>\n<td>{price}</td>\n<td>{brand}</td>\n
+        </tr>\n
+       
+    """.format(loc=i['location'], price=Decimal(i['price'])/100,brand = i['brand'],day = i['day'])
+
+
+head = """
         <table>
     <thead>
         <tr>
             <th>Suburb</th>
-          	<th>Fuel Price</th>
+          	<th>Fuel Price/$</th>
           	<th>Fuel Station</th>
         </tr>
     </thead>
-""")
-f.write('<tbody>\n')
-for i in range(len(sorted_feedAll)):
-   
-    f.write('<tr>\n')
-    f.write('<td>'+ sorted_feedAll[i]['location']+'</td>\n''<td> '+sorted_feedAll[i]['price']+'</td>\n''<td>'+sorted_feedAll[i]['brand']+'</td>\n')
-    f.write('</tr>\n')
-f.write('</tbody>\n')
-f.write('</table>\n')
 
-
-
-
+<tbody>\n
+"""
+tail = ' </tbody>\n</table>\n'
+f.write(head + rows + tail)
 f.close()
